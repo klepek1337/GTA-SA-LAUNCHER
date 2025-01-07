@@ -34,7 +34,7 @@
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.progressBarPythonInstall);
             this.Name = "Form1";
-            this.Text = "Game Launcher";
+            this.Text = "GTA SA Launcher by klepek1337";
             this.ResumeLayout(false);
 
         }
