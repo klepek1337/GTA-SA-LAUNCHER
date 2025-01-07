@@ -1,3 +1,4 @@
+### Zawartość pliku: Form1.cs ###
 using System;
 using System.IO;
 using System.Windows.Forms;
@@ -108,3 +109,112 @@ namespace GameLauncher
         }
     }
 }
+
+
+### Zawartość pliku: Form1.Designer.cs ###
+﻿namespace GameLauncher
+{
+    partial class Form1
+    {
+        private System.ComponentModel.IContainer components = null;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // Form1
+            // 
+            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Name = "Form1";
+            this.Text = "Game Launcher";
+            this.ResumeLayout(false);
+        }
+    }
+}
+
+
+### Zawartość pliku: GameLauncher.csproj ###
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="background.jpg" />
+  </ItemGroup>
+
+</Project>
+
+
+### Zawartość pliku: GameLauncher.csproj.user ###
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <Compile Update="Form1.cs">
+            <SubType>Form</SubType>
+        </Compile>
+    </ItemGroup>
+</Project>
+
+
+### Zawartość pliku: GameLauncher.sln ###
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.002.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameLauncher", "GameLauncher.csproj", "{F52D4C5A-FFC7-4C91-A93F-073FDBC1BE51}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F52D4C5A-FFC7-4C91-A93F-073FDBC1BE51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F52D4C5A-FFC7-4C91-A93F-073FDBC1BE51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F52D4C5A-FFC7-4C91-A93F-073FDBC1BE51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F52D4C5A-FFC7-4C91-A93F-073FDBC1BE51}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B62CAAF8-7EC9-4573-8829-CEA0BF780799}
+	EndGlobalSection
+EndGlobal
+
+
+### Zawartość pliku: Program.cs ###
+using System;
+using System.Windows.Forms;
+
+namespace GameLauncher
+{
+    static class Program
+    {
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new Form1());
+        }
+    }
+}
+
+
