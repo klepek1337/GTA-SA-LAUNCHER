@@ -10,38 +10,22 @@ namespace GameLauncher
 {
     public partial class Form1 : Form
     {
-        private List<string?> gamePaths = new List<string?>(); // Użyj nullable
+        private GameSettings gameSettings;
 
         public Form1()
         {
             InitializeComponent();
 
-            // Początkowo ukryj pasek postępu
-            progressBarPythonInstall.Visible = false;
+            // Ładujemy ustawienia gier z pliku
+            gameSettings = GameSettings.LoadSettings();
 
-            // Sprawdzamy, czy Python jest zainstalowany
-            if (!IsPythonInstalled())
-            {
-                DialogResult result = MessageBox.Show("Python nie jest zainstalowany. Czy chcesz go zainstalować?", "Brak Pythona", MessageBoxButtons.YesNo);
+            // Inicjalizujemy przyciski gier
+            InitializeButtons();
 
-                if (result == DialogResult.Yes)
-                {
-                    InstallPython();  // Instaluje Pythona
-                }
-                else
-                {
-                    MessageBox.Show("Aplikacja nie będzie działać bez Pythona.");
-                    Application.Exit();  // Zakończ aplikację
-                }
-            }
-            else
-            {
-                SetBackgroundImage();
-                InitializeButtons();
-            }
+            SetBackgroundImage();
         }
 
-        // Funkcja sprawdzająca, czy Python jest zainstalowany
+        // Funkcja do sprawdzania, czy Python jest zainstalowany
         private bool IsPythonInstalled()
         {
             try
@@ -63,11 +47,9 @@ namespace GameLauncher
 
             try
             {
-                // Ustawiamy widoczność paska postępu
                 progressBarPythonInstall.Style = ProgressBarStyle.Marquee;
                 progressBarPythonInstall.Visible = true;
 
-                // Pobieramy instalator w tle
 #pragma warning disable SYSLIB0014 // Type or member is obsolete
                 using (var client = new WebClient())
                 {
@@ -75,47 +57,44 @@ namespace GameLauncher
                 }
 #pragma warning restore SYSLIB0014 // Type or member is obsolete
 
-                // Uruchamiamy instalator w trybie cichym (bez interakcji użytkownika)
                 ProcessStartInfo processStartInfo = new ProcessStartInfo
                 {
                     FileName = installerPath,
-                    Arguments = "/quiet InstallAllUsers=1 PrependPath=1", // Parametry do cichej instalacji i dodania Pythona do PATH
+                    Arguments = "/quiet InstallAllUsers=1 PrependPath=1",
                     CreateNoWindow = true,
                     UseShellExecute = false
                 };
 
-                // Używamy nowego wątku, aby uruchomić instalator, aby nie blokować głównego wątku aplikacji
                 _ = Task.Run(() =>
                 {
 #pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                     Process process = Process.Start(processStartInfo);
 #pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
 #pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    process.WaitForExit();  // Czekamy na zakończenie procesu instalacji
+                    process.WaitForExit();
 #pragma warning restore CS8602 // Dereference of a possibly null reference.
 
-                    // Po zakończeniu instalacji
                     Invoke(new Action(() =>
                     {
-                        progressBarPythonInstall.Style = ProgressBarStyle.Blocks;  // Przechodzimy do zwykłego paska postępu
-                        progressBarPythonInstall.Value = 100;  // Ustawiamy 100% na pasku
+                        progressBarPythonInstall.Style = ProgressBarStyle.Blocks;
+                        progressBarPythonInstall.Value = 100;
 
-                        // Ukrywamy pasek postępu
                         MessageBox.Show("Python został pomyślnie zainstalowany. Uruchom ponownie aplikację.");
-                        Application.Exit();  // Zakończ aplikację, aby użytkownik mógł ją uruchomić ponownie po instalacji
+                        Application.Exit();
                     }));
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Błąd podczas pobierania lub instalacji Pythona: {ex.Message}");
+                MessageBox.Show($"Błąd podczas instalacji Pythona: {ex.Message}");
             }
         }
 
-        // Funkcja do ustawienia tła z pliku lokalnego
+        // Funkcja do ustawienia tła z pliku
         private void SetBackgroundImage()
         {
-            string backgroundPath = @"C:\Users\fulek\GameLauncher\background.jpg";
+            string backgroundPath = Path.Combine(Application.StartupPath, "background.jpg");
+            MessageBox.Show($"Ścieżka do tła: {backgroundPath}"); // Debugowanie ścieżki
 
             if (File.Exists(backgroundPath))
             {
@@ -128,29 +107,54 @@ namespace GameLauncher
             }
         }
 
-        // Inicjalizacja przycisków
+        // Inicjalizacja przycisków (zwiększanie rozmiaru i ustawienie poziome)
         private void InitializeButtons()
         {
-            Controls.Clear(); // Usuń istniejące kontrolki, aby uniknąć duplikatów
+            Controls.Clear();
 
-            for (int i = 0; i < gamePaths.Count; i++)
+            int buttonWidth = 200; // Szerokość przycisków
+            int buttonHeight = 100; // Wysokość przycisków
+            int spacing = 10; // Odstęp między przyciskami
+
+            // Rozpoczynamy rozmieszczanie przycisków w poziomie
+            int xPosition = 50; // Początkowa pozycja X
+            int yPosition = 50; // Pozycja Y, przyciski będą w jednej linii poziomej
+
+            for (int i = 0; i < gameSettings.GamePaths.Count; i++)
             {
-                int currentIndex = i; // Lokalne przypisanie zmiennej, aby uniknąć problemów z delegatami
+                int currentIndex = i;
                 Button gameButton = new Button
                 {
-                    Text = gamePaths[i] != null ? Path.GetFileNameWithoutExtension(gamePaths[i]!) : $"Gra {i + 1}",
-                    Location = new Point(50, 50 + (i * 60))
+                    Text = gameSettings.GamePaths[i] != null ? Path.GetFileNameWithoutExtension(gameSettings.GamePaths[i]) : $"Gra {i + 1}",
+                    Location = new Point(xPosition, yPosition), // Ustawiamy pozycję przycisku
+                    Size = new Size(buttonWidth, buttonHeight), // Zwiększamy rozmiar przycisku
+                    Font = new Font("Arial", 12, FontStyle.Bold), // Zwiększamy czcionkę i ustawiamy pogrubienie
+                    BackColor = Color.LightSkyBlue, // Zmieniamy kolor tła przycisku
+                    ForeColor = Color.White, // Zmieniamy kolor tekstu
+                    FlatStyle = FlatStyle.Flat, // Zmieniamy styl przycisku na płaski
                 };
+
+                gameButton.FlatAppearance.BorderSize = 0; // Usuwamy obramowanie
+
                 gameButton.Click += (sender, e) => OnGameButtonClick(currentIndex);
                 Controls.Add(gameButton);
+
+                // Przesuwamy pozycję X, aby przyciski były w poziomie
+                xPosition += buttonWidth + spacing;
             }
 
-            // Dodanie przycisku do dodania kolejnych gier
+            // Dodajemy przycisk "Dodaj grę"
             Button addGameButton = new Button
             {
                 Text = "Dodaj grę",
-                Location = new Point(50, 50 + (gamePaths.Count * 60) + 20)
+                Location = new Point(xPosition, yPosition), // Pozycja przycisku dodawania gry
+                Size = new Size(buttonWidth, buttonHeight),
+                Font = new Font("Arial", 12, FontStyle.Bold),
+                BackColor = Color.LightCoral,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
             };
+            addGameButton.FlatAppearance.BorderSize = 0;
 #pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             addGameButton.Click += AddMoreGames;
 #pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
@@ -160,15 +164,15 @@ namespace GameLauncher
         // Funkcja obsługująca kliknięcie przycisku gry
         private void OnGameButtonClick(int index)
         {
-            if (index < 0 || index >= gamePaths.Count)
+            if (index < 0 || index >= gameSettings.GamePaths.Count)
             {
                 MessageBox.Show("Nieprawidłowy indeks przycisku gry.");
                 return;
             }
 
-            if (!string.IsNullOrEmpty(gamePaths[index]))
+            if (!string.IsNullOrEmpty(gameSettings.GamePaths[index]))
             {
-                LaunchGame(gamePaths[index]!); // Uruchom grę, jeśli ścieżka istnieje
+                LaunchGame(gameSettings.GamePaths[index]);
             }
             else
             {
@@ -180,19 +184,26 @@ namespace GameLauncher
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    gamePaths[index] = openFileDialog.FileName;
-                    InitializeButtons(); // Zaktualizuj przyciski
+                    gameSettings.GamePaths[index] = openFileDialog.FileName;
+                    InitializeButtons();
+
+                    if (gameSettings.GamePaths[index]?.ToLower().EndsWith(".lnk") == true && !IsPythonInstalled())
+                    {
+                        InstallPython();
+                    }
                 }
             }
         }
 
-        // Funkcja obsługująca dodanie nowych gier
+        // Funkcja do dodania nowych gier
         private void AddMoreGames(object sender, EventArgs e)
         {
-            if (gamePaths.Count < 5) // Maksymalnie 5 gier
+            if (gameSettings.GamePaths.Count < 5)
             {
-                gamePaths.Add(null);
-                InitializeButtons(); // Odśwież przyciski
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+                gameSettings.GamePaths.Add(null);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+                InitializeButtons();
             }
             else
             {
@@ -200,7 +211,7 @@ namespace GameLauncher
             }
         }
 
-        // Funkcja do uruchamiania gry lub skrótu
+        // Funkcja do uruchamiania gry
         private void LaunchGame(string gamePath)
         {
             if (File.Exists(gamePath))
@@ -209,18 +220,13 @@ namespace GameLauncher
                 {
                     if (gamePath.ToLower().EndsWith(".lnk"))
                     {
-                        // Uruchamiamy plik .lnk (skrót)
                         string pythonScript = Path.Combine(Path.GetTempPath(), "launch_game.py");
-
-                        // Tworzymy skrypt Python
                         File.WriteAllText(pythonScript, $"import os\nos.startfile('{gamePath}')");
-
-                        // Uruchamiamy skrypt Python
                         Process.Start("python", pythonScript);
                     }
                     else
                     {
-                        Process.Start(gamePath); // Uruchamiamy plik .exe
+                        Process.Start(gamePath);
                     }
                 }
                 catch (Exception ex)
@@ -232,6 +238,13 @@ namespace GameLauncher
             {
                 MessageBox.Show("Plik gry nie istnieje.");
             }
+        }
+
+        // Zapisujemy ustawienia przed zamknięciem aplikacji
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            gameSettings.SaveSettings();
+            base.OnFormClosing(e);
         }
     }
 }

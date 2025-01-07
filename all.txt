@@ -1,34 +1,99 @@
-### Zawartość pliku: .editorconfig ###
-[*.cs]
-
-# IDE0005: Using directive is unnecessary.
-dotnet_diagnostic.IDE0005.severity = none
-
-
 ### Zawartość pliku: Form1.cs ###
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace GameLauncher
 {
     public partial class Form1 : Form
     {
-        private List<string?> gamePaths = new List<string?>(); // Użyj nullable
+        private GameSettings gameSettings;
 
         public Form1()
         {
             InitializeComponent();
-            SetBackgroundImage(); // Ustawienie tła
-            InitializeButtons(); // Inicjalizacja przycisków
+
+            // Ładujemy ustawienia gier z pliku
+            gameSettings = GameSettings.LoadSettings();
+
+            // Inicjalizujemy przyciski gier
+            InitializeButtons();
         }
 
-        // Metoda do ustawienia tła z pliku lokalnego
+        // Funkcja do sprawdzania, czy Python jest zainstalowany
+        private bool IsPythonInstalled()
+        {
+            try
+            {
+                Process.Start("python", "--version");
+                return true; // Python jest zainstalowany
+            }
+            catch
+            {
+                return false; // Python nie jest zainstalowany
+            }
+        }
+
+        // Funkcja do instalacji Pythona
+        private void InstallPython()
+        {
+            string pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.5/python-3.10.5-amd64.exe"; // Link do instalatora
+            string installerPath = Path.Combine(Path.GetTempPath(), "python_installer.exe");
+
+            try
+            {
+                progressBarPythonInstall.Style = ProgressBarStyle.Marquee;
+                progressBarPythonInstall.Visible = true;
+
+#pragma warning disable SYSLIB0014 // Type or member is obsolete
+                using (var client = new WebClient())
+                {
+                    client.DownloadFile(pythonInstallerUrl, installerPath);
+                }
+#pragma warning restore SYSLIB0014 // Type or member is obsolete
+
+                ProcessStartInfo processStartInfo = new ProcessStartInfo
+                {
+                    FileName = installerPath,
+                    Arguments = "/quiet InstallAllUsers=1 PrependPath=1",
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+
+                _ = Task.Run(() =>
+                {
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                    Process process = Process.Start(processStartInfo);
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                    process.WaitForExit();
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+                    Invoke(new Action(() =>
+                    {
+                        progressBarPythonInstall.Style = ProgressBarStyle.Blocks;
+                        progressBarPythonInstall.Value = 100;
+
+                        MessageBox.Show("Python został pomyślnie zainstalowany. Uruchom ponownie aplikację.");
+                        Application.Exit();
+                    }));
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Błąd podczas instalacji Pythona: {ex.Message}");
+            }
+        }
+
+        // Funkcja do ustawienia tła z pliku
         private void SetBackgroundImage()
         {
-            string backgroundPath = @"C:\Users\fulek\GameLauncher\background.jpg";
+            string backgroundPath = Path.Combine(Application.StartupPath, "background.png");
+            MessageBox.Show($"Ścieżka do tła: {backgroundPath}"); // Debugowanie ścieżki
 
             if (File.Exists(backgroundPath))
             {
@@ -44,25 +109,24 @@ namespace GameLauncher
         // Inicjalizacja przycisków
         private void InitializeButtons()
         {
-            Controls.Clear(); // Usuń istniejące kontrolki, aby uniknąć duplikatów
+            Controls.Clear();
 
-            for (int i = 0; i < gamePaths.Count; i++)
+            for (int i = 0; i < gameSettings.GamePaths.Count; i++)
             {
-                int currentIndex = i; // Lokalne przypisanie zmiennej, aby uniknąć problemów z delegatami
+                int currentIndex = i;
                 Button gameButton = new Button
                 {
-                    Text = gamePaths[i] != null ? Path.GetFileNameWithoutExtension(gamePaths[i]!) : $"Gra {i + 1}",
+                    Text = gameSettings.GamePaths[i] != null ? Path.GetFileNameWithoutExtension(gameSettings.GamePaths[i]) : $"Gra {i + 1}",
                     Location = new Point(50, 50 + (i * 60))
                 };
                 gameButton.Click += (sender, e) => OnGameButtonClick(currentIndex);
                 Controls.Add(gameButton);
             }
 
-            // Dodanie przycisku do dodania kolejnych gier
             Button addGameButton = new Button
             {
                 Text = "Dodaj grę",
-                Location = new Point(50, 50 + (gamePaths.Count * 60) + 20)
+                Location = new Point(50, 50 + (gameSettings.GamePaths.Count * 60) + 20)
             };
 #pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             addGameButton.Click += AddMoreGames;
@@ -73,15 +137,15 @@ namespace GameLauncher
         // Funkcja obsługująca kliknięcie przycisku gry
         private void OnGameButtonClick(int index)
         {
-            if (index < 0 || index >= gamePaths.Count)
+            if (index < 0 || index >= gameSettings.GamePaths.Count)
             {
                 MessageBox.Show("Nieprawidłowy indeks przycisku gry.");
                 return;
             }
 
-            if (!string.IsNullOrEmpty(gamePaths[index]))
+            if (!string.IsNullOrEmpty(gameSettings.GamePaths[index]))
             {
-                LaunchGame(gamePaths[index]!); // Uruchom grę, jeśli ścieżka istnieje
+                LaunchGame(gameSettings.GamePaths[index]);
             }
             else
             {
@@ -93,19 +157,26 @@ namespace GameLauncher
 
                 if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    gamePaths[index] = openFileDialog.FileName;
-                    InitializeButtons(); // Zaktualizuj przyciski
+                    gameSettings.GamePaths[index] = openFileDialog.FileName;
+                    InitializeButtons();
+
+                    if (gameSettings.GamePaths[index]?.ToLower().EndsWith(".lnk") == true && !IsPythonInstalled())
+                    {
+                        InstallPython();
+                    }
                 }
             }
         }
 
-        // Funkcja obsługująca dodanie nowych gier
+        // Funkcja do dodania nowych gier
         private void AddMoreGames(object sender, EventArgs e)
         {
-            if (gamePaths.Count < 5) // Maksymalnie 5 gier
+            if (gameSettings.GamePaths.Count < 5)
             {
-                gamePaths.Add(null);
-                InitializeButtons(); // Odśwież przyciski
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
+                gameSettings.GamePaths.Add(null);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+                InitializeButtons();
             }
             else
             {
@@ -113,7 +184,7 @@ namespace GameLauncher
             }
         }
 
-        // Funkcja do uruchamiania gry lub skrótu
+        // Funkcja do uruchamiania gry
         private void LaunchGame(string gamePath)
         {
             if (File.Exists(gamePath))
@@ -122,22 +193,13 @@ namespace GameLauncher
                 {
                     if (gamePath.ToLower().EndsWith(".lnk"))
                     {
-                        // Jeśli to skrót, uruchom go za pomocą Process.Start()
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                        string targetPath = GetTargetPathFromShortcut(gamePath);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-                        if (!string.IsNullOrEmpty(targetPath) && File.Exists(targetPath))
-                        {
-                            Process.Start(targetPath); // Uruchom plik docelowy
-                        }
-                        else
-                        {
-                            MessageBox.Show("Nie można znaleźć pliku docelowego skrótu.");
-                        }
+                        string pythonScript = Path.Combine(Path.GetTempPath(), "launch_game.py");
+                        File.WriteAllText(pythonScript, $"import os\nos.startfile('{gamePath}')");
+                        Process.Start("python", pythonScript);
                     }
                     else
                     {
-                        Process.Start(gamePath); // Uruchom plik .exe
+                        Process.Start(gamePath);
                     }
                 }
                 catch (Exception ex)
@@ -151,41 +213,15 @@ namespace GameLauncher
             }
         }
 
-        // Funkcja do odczytania celu skrótu .lnk
-        private string? GetTargetPathFromShortcut(string shortcutPath)
+        // Zapisujemy ustawienia przed zamknięciem aplikacji
+        protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            try
-            {
-                // Użycie Process.Start z komendą do odczytu celu skrótu
-                string targetPath = string.Empty;
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = "cmd.exe",
-                    Arguments = $"/C echo|set /p={shortcutPath}|findstr /i .lnk",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true
-                };
-
-                using (var process = Process.Start(startInfo))
-                {
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    using (var reader = process.StandardOutput)
-                    {
-                        targetPath = reader.ReadToEnd().Trim();
-                    }
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-                }
-
-                return targetPath;
-            }
-            catch
-            {
-                return null;
-            }
+            gameSettings.SaveSettings();
+            base.OnFormClosing(e);
         }
     }
 }
+
 
 
 ### Zawartość pliku: Form1.Designer.cs ###
@@ -194,6 +230,9 @@ namespace GameLauncher
     partial class Form1
     {
         private System.ComponentModel.IContainer components = null;
+
+        // Dodajemy ProgressBar
+        private System.Windows.Forms.ProgressBar progressBarPythonInstall;
 
         protected override void Dispose(bool disposing)
         {
@@ -206,11 +245,21 @@ namespace GameLauncher
 
         private void InitializeComponent()
         {
+            this.progressBarPythonInstall = new System.Windows.Forms.ProgressBar();
             this.SuspendLayout();
+            // 
+            // progressBarPythonInstall
+            // 
+            this.progressBarPythonInstall.Location = new System.Drawing.Point(12, 420);
+            this.progressBarPythonInstall.Name = "progressBarPythonInstall";
+            this.progressBarPythonInstall.Size = new System.Drawing.Size(776, 23);
+            this.progressBarPythonInstall.TabIndex = 0;
+            this.progressBarPythonInstall.Visible = false;
             // 
             // Form1
             // 
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.progressBarPythonInstall);
             this.Name = "Form1";
             this.Text = "Game Launcher";
             this.ResumeLayout(false);
@@ -221,7 +270,6 @@ namespace GameLauncher
 
 ### Zawartość pliku: GameLauncher.csproj ###
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
@@ -229,13 +277,13 @@ namespace GameLauncher
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
   <ItemGroup>
     <EmbeddedResource Include="background.jpg" />
   </ItemGroup>
-
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
 </Project>
-
 
 ### Zawartość pliku: GameLauncher.csproj.user ###
 ﻿<?xml version="1.0" encoding="utf-8"?>
@@ -274,6 +322,55 @@ Global
 		SolutionGuid = {B62CAAF8-7EC9-4573-8829-CEA0BF780799}
 	EndGlobalSection
 EndGlobal
+
+
+### Zawartość pliku: GameSettings.cs ###
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Newtonsoft.Json;
+
+namespace GameLauncher
+{
+    public class GameSettings
+    {
+        public List<string> GamePaths { get; set; } = new List<string>();
+
+        private const string SettingsFilePath = "gamesettings.json";
+
+        // Metoda do zapisywania ustawień do pliku JSON
+        public void SaveSettings()
+        {
+            try
+            {
+                var json = JsonConvert.SerializeObject(this, Formatting.Indented);
+                File.WriteAllText(SettingsFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd podczas zapisywania ustawień: {ex.Message}");
+            }
+        }
+
+        // Metoda do ładowania ustawień z pliku JSON
+        public static GameSettings LoadSettings()
+        {
+            try
+            {
+                if (File.Exists(SettingsFilePath))
+                {
+                    var json = File.ReadAllText(SettingsFilePath);
+                    return JsonConvert.DeserializeObject<GameSettings>(json) ?? new GameSettings();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Błąd podczas ładowania ustawień: {ex.Message}");
+            }
+            return new GameSettings(); // Domyślnie pusty zestaw gier
+        }
+    }
+}
 
 
 ### Zawartość pliku: Program.cs ###

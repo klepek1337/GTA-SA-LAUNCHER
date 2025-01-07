@@ -36,6 +36,7 @@
             this.Name = "Form1";
             this.Text = "Game Launcher";
             this.ResumeLayout(false);
+
         }
     }
 }
