@@ -1,15 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PublishSingleFile>true</PublishSingleFile> <!-- Publikacja jako pojedynczy plik -->
+    <ApplicationIcon>gtasa.ico</ApplicationIcon> <!-- Określenie ikony aplikacji -->
+    <AssemblyName>gta-sa</AssemblyName> <!-- Zmieniamy nazwę pliku EXE -->
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Osadzenie pliku background.jpg jako zasób -->
     <EmbeddedResource Include="background.jpg" />
+    <!-- Dodanie pliku ikony jako zasób (do publikacji) -->
+    <EmbeddedResource Include="gtasa.ico" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
 </Project>
