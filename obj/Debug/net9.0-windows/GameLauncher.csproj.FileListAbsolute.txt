@@ -1,0 +1,14 @@
+C:\Users\fulek\GameLauncher\bin\Debug\net9.0-windows\GameLauncher.exe
+C:\Users\fulek\GameLauncher\bin\Debug\net9.0-windows\GameLauncher.deps.json
+C:\Users\fulek\GameLauncher\bin\Debug\net9.0-windows\GameLauncher.runtimeconfig.json
+C:\Users\fulek\GameLauncher\bin\Debug\net9.0-windows\GameLauncher.dll
+C:\Users\fulek\GameLauncher\bin\Debug\net9.0-windows\GameLauncher.pdb
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.AssemblyInfoInputs.cache
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.AssemblyInfo.cs
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.csproj.CoreCompileInputs.cache
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.dll
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\refint\GameLauncher.dll
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.pdb
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\GameLauncher.genruntimeconfig.cache
+C:\Users\fulek\GameLauncher\obj\Debug\net9.0-windows\ref\GameLauncher.dll
