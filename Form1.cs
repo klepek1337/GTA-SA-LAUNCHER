@@ -49,7 +49,9 @@ namespace GameLauncher
 
                 // Używamy Tag, aby przypisać indeks gry do przycisku
                 gameButton.Tag = i;  // Zapisanie indeksu gry w Tag
+#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
                 gameButton.Click += GameButton_Click;
+#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
                 Controls.Add(gameButton);
             }
 
@@ -57,7 +59,9 @@ namespace GameLauncher
             Button addGameButton = new Button();
             addGameButton.Text = "Dodaj grę";
             addGameButton.Location = new Point(50, 50 + (gamePaths.Count * 60));
+#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             addGameButton.Click += AddGame; // Zmiana na wywołanie funkcji do dodania gry
+#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             Controls.Add(addGameButton);
         }
 
@@ -65,7 +69,9 @@ namespace GameLauncher
         private void GameButton_Click(object sender, EventArgs e)
         {
             Button button = (Button)sender;
+#pragma warning disable CS8605 // Unboxing a possibly null value.
             int gameIndex = (int)button.Tag;  // Pobranie indeksu z Tag
+#pragma warning restore CS8605 // Unboxing a possibly null value.
 
             // Uruchomienie gry na podstawie zapisanego indeksu
             LaunchGame(gamePaths[gameIndex]);
@@ -76,7 +82,7 @@ namespace GameLauncher
         {
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = "Pliki wykonywalne (*.exe)|*.exe",
+                Filter = "Pliki wykonywalne (*.exe, *.lnk)|*.exe;*.lnk",
                 Title = "Wybierz plik gry"
             };
 
@@ -99,12 +105,51 @@ namespace GameLauncher
         {
             if (File.Exists(gamePath))
             {
-                Process.Start(gamePath);  // Uruchomienie gry
+                try
+                {
+                    // Sprawdź, czy to plik skrótu (.lnk)
+                    if (gamePath.ToLower().EndsWith(".lnk"))
+                    {
+                        // Odczytanie celu skrótu .lnk
+                        var shell = new WshShell();
+                        IWshShortcut shortcut = (IWshShortcut)shell.CreateShortcut(gamePath);
+                        string targetPath = shortcut.TargetPath;
+
+                        // Uruchomienie celu skrótu
+                        Process.Start(targetPath);
+                    }
+                    else
+                    {
+                        // Uruchomienie pliku .exe
+                        Process.Start(gamePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Błąd podczas uruchamiania gry: {ex.Message}");
+                }
             }
             else
             {
                 MessageBox.Show("Plik gry nie istnieje.");
             }
+        }
+    }
+
+    internal interface IWshShortcut
+    {
+        string TargetPath { get; }
+    }
+
+    internal class WshShell
+    {
+        public WshShell()
+        {
+        }
+
+        internal IWshShortcut CreateShortcut(string gamePath)
+        {
+            throw new NotImplementedException();
         }
     }
 }
