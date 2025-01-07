@@ -1,16 +1,22 @@
+### Zawartość pliku: .editorconfig ###
+[*.cs]
+
+# IDE0005: Using directive is unnecessary.
+dotnet_diagnostic.IDE0005.severity = none
+
+
 ### Zawartość pliku: Form1.cs ###
 using System;
-using System.IO;
-using System.Windows.Forms;
-using System.Drawing;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Windows.Forms;
 
 namespace GameLauncher
 {
     public partial class Form1 : Form
     {
-        private List<string> gamePaths = new List<string>();
+        private List<string?> gamePaths = new List<string?>(); // Użyj nullable
 
         public Form1()
         {
@@ -22,7 +28,7 @@ namespace GameLauncher
         // Metoda do ustawienia tła z pliku lokalnego
         private void SetBackgroundImage()
         {
-            string backgroundPath = @"C:\Users\fulek\GameLauncher\background.jpg"; // Ścieżka do pliku tła na dysku
+            string backgroundPath = @"C:\Users\fulek\GameLauncher\background.jpg";
 
             if (File.Exists(backgroundPath))
             {
@@ -38,73 +44,144 @@ namespace GameLauncher
         // Inicjalizacja przycisków
         private void InitializeButtons()
         {
-            Controls.Clear();  // Czyści obecne kontrolki
+            Controls.Clear(); // Usuń istniejące kontrolki, aby uniknąć duplikatów
 
-            // Dodaj przyciski na podstawie liczby gier w liście gamePaths
             for (int i = 0; i < gamePaths.Count; i++)
             {
-                Button gameButton = new Button();
-                string gameName = Path.GetFileNameWithoutExtension(gamePaths[i]); // Wyciągamy nazwę pliku bez rozszerzenia
-                gameButton.Text = gameName;
-                gameButton.Location = new Point(50, 50 + (i * 60));
-
-                // Używamy Tag, aby przypisać indeks gry do przycisku
-                gameButton.Tag = i;  // Zapisanie indeksu gry w Tag
-                gameButton.Click += GameButton_Click;
+                int currentIndex = i; // Lokalne przypisanie zmiennej, aby uniknąć problemów z delegatami
+                Button gameButton = new Button
+                {
+                    Text = gamePaths[i] != null ? Path.GetFileNameWithoutExtension(gamePaths[i]!) : $"Gra {i + 1}",
+                    Location = new Point(50, 50 + (i * 60))
+                };
+                gameButton.Click += (sender, e) => OnGameButtonClick(currentIndex);
                 Controls.Add(gameButton);
             }
 
             // Dodanie przycisku do dodania kolejnych gier
-            Button addGameButton = new Button();
-            addGameButton.Text = "Dodaj grę";
-            addGameButton.Location = new Point(50, 50 + (gamePaths.Count * 60));
-            addGameButton.Click += AddGame; // Zmiana na wywołanie funkcji do dodania gry
+            Button addGameButton = new Button
+            {
+                Text = "Dodaj grę",
+                Location = new Point(50, 50 + (gamePaths.Count * 60) + 20)
+            };
+#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
+            addGameButton.Click += AddMoreGames;
+#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             Controls.Add(addGameButton);
         }
 
         // Funkcja obsługująca kliknięcie przycisku gry
-        private void GameButton_Click(object sender, EventArgs e)
+        private void OnGameButtonClick(int index)
         {
-            Button button = (Button)sender;
-            int gameIndex = (int)button.Tag;  // Pobranie indeksu z Tag
-
-            // Uruchomienie gry na podstawie zapisanego indeksu
-            LaunchGame(gamePaths[gameIndex]);
-        }
-
-        // Funkcja obsługująca dodanie nowych gier
-        private void AddGame(object sender, EventArgs e)
-        {
-            OpenFileDialog openFileDialog = new OpenFileDialog
+            if (index < 0 || index >= gamePaths.Count)
             {
-                Filter = "Pliki wykonywalne (*.exe)|*.exe",
-                Title = "Wybierz plik gry"
-            };
+                MessageBox.Show("Nieprawidłowy indeks przycisku gry.");
+                return;
+            }
 
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            if (!string.IsNullOrEmpty(gamePaths[index]))
             {
-                if (gamePaths.Count < 5) // Maksymalnie 5 gier
+                LaunchGame(gamePaths[index]!); // Uruchom grę, jeśli ścieżka istnieje
+            }
+            else
+            {
+                OpenFileDialog openFileDialog = new OpenFileDialog
                 {
-                    gamePaths.Add(openFileDialog.FileName); // Dodanie ścieżki gry do listy
-                    InitializeButtons();  // Ponownie zainicjalizuj przyciski, aby uwzględnić nową grę
-                }
-                else
+                    Filter = "Pliki wykonywalne (*.exe, *.lnk)|*.exe;*.lnk",
+                    Title = "Wybierz plik gry"
+                };
+
+                if (openFileDialog.ShowDialog() == DialogResult.OK)
                 {
-                    MessageBox.Show("Osiągnięto maksymalną liczbę gier.");
+                    gamePaths[index] = openFileDialog.FileName;
+                    InitializeButtons(); // Zaktualizuj przyciski
                 }
             }
         }
 
-        // Funkcja do uruchomienia gry
+        // Funkcja obsługująca dodanie nowych gier
+        private void AddMoreGames(object sender, EventArgs e)
+        {
+            if (gamePaths.Count < 5) // Maksymalnie 5 gier
+            {
+                gamePaths.Add(null);
+                InitializeButtons(); // Odśwież przyciski
+            }
+            else
+            {
+                MessageBox.Show("Osiągnięto maksymalną liczbę gier.");
+            }
+        }
+
+        // Funkcja do uruchamiania gry lub skrótu
         private void LaunchGame(string gamePath)
         {
             if (File.Exists(gamePath))
             {
-                Process.Start(gamePath);  // Uruchomienie gry
+                try
+                {
+                    if (gamePath.ToLower().EndsWith(".lnk"))
+                    {
+                        // Jeśli to skrót, uruchom go za pomocą Process.Start()
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+                        string targetPath = GetTargetPathFromShortcut(gamePath);
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
+                        if (!string.IsNullOrEmpty(targetPath) && File.Exists(targetPath))
+                        {
+                            Process.Start(targetPath); // Uruchom plik docelowy
+                        }
+                        else
+                        {
+                            MessageBox.Show("Nie można znaleźć pliku docelowego skrótu.");
+                        }
+                    }
+                    else
+                    {
+                        Process.Start(gamePath); // Uruchom plik .exe
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Błąd podczas uruchamiania gry: {ex.Message}");
+                }
             }
             else
             {
                 MessageBox.Show("Plik gry nie istnieje.");
+            }
+        }
+
+        // Funkcja do odczytania celu skrótu .lnk
+        private string? GetTargetPathFromShortcut(string shortcutPath)
+        {
+            try
+            {
+                // Użycie Process.Start z komendą do odczytu celu skrótu
+                string targetPath = string.Empty;
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/C echo|set /p={shortcutPath}|findstr /i .lnk",
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+
+                using (var process = Process.Start(startInfo))
+                {
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                    using (var reader = process.StandardOutput)
+                    {
+                        targetPath = reader.ReadToEnd().Trim();
+                    }
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+                }
+
+                return targetPath;
+            }
+            catch
+            {
+                return null;
             }
         }
     }
