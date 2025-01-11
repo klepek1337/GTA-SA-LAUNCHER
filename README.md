@@ -18,3 +18,9 @@
 
 Here is the latest version of the program, which may look different and work better than the one you see:  
 https://github.com/klepek1337/GTA-SA-LAUNCHER/tags  
+![Zrzut ekranu 2025-01-10 165806](https://github.com/user-attachments/assets/acf83abf-6312-462c-9c37-3ba68f3e5187)
+
+
+![Zrzut ekranu 2025-01-10 170246](https://github.com/user-attachments/assets/8a3d7e4a-97c6-4214-b2be-f6c7cf3660e9)
+
+![Zrzut ekranu 2025-01-10 170033](https://github.com/user-attachments/assets/8991b909-ba8e-4b8d-b49f-a5eb943bc3b1)
