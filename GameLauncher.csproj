@@ -11,10 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Osadzenie pliku background.jpg jako zasób -->
+    <!-- Osadzenie plików graficznych jako zasoby -->
     <EmbeddedResource Include="background.jpg" />
-    <!-- Dodanie pliku ikony jako zasób (do publikacji) -->
     <EmbeddedResource Include="gtasa.ico" />
+    <EmbeddedResource Include="gta_sa.ico" /> <!-- Dodanie ikony gta_sa.ico -->
+    <EmbeddedResource Include="mta.ico" /> <!-- Dodanie ikony mta.ico -->
+    <EmbeddedResource Include="samp.ico" /> <!-- Dodanie ikony samp.ico -->
   </ItemGroup>
 
   <ItemGroup>
