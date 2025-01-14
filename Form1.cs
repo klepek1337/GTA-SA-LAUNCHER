@@ -14,9 +14,11 @@ namespace GameLauncher
         private GameSettings gameSettings;
         private FlowLayoutPanel flowLayoutPanel;
         private System.Timers.Timer backgroundChangeTimer;
-        private bool toggleBackground = true;
+        private int currentBackgroundIndex = 0;
 
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         public Form1()
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
         {
             InitializeComponent();
 
@@ -48,19 +50,14 @@ namespace GameLauncher
 
         private void InitializeBackgroundChangeTimer()
         {
-            backgroundChangeTimer = new System.Timers.Timer(60000); // 60 sekund
-            backgroundChangeTimer.Elapsed += (s, e) => Invoke((Action)(() =>
-            {
-                SetBackgroundImage();
-                toggleBackground = !toggleBackground; // Zmiana flagi
-            }));
+            backgroundChangeTimer = new System.Timers.Timer(60000); // 10 sekund
+            backgroundChangeTimer.Elapsed += (s, e) => Invoke((Action)(() => SetBackgroundImage()));
             backgroundChangeTimer.AutoReset = true;
             backgroundChangeTimer.Start();
         }
 
         private void SetBackgroundImage()
         {
-            // Lista dostępnych plików tła
             string[] backgroundPaths = new string[]
             {
                 "background.jpg",
@@ -73,27 +70,23 @@ namespace GameLauncher
                 "background8.jpg"
             };
 
-            // Obliczenie aktualnego indeksu tła na podstawie flagi `toggleBackground`
-            int currentIndex = Array.IndexOf(backgroundPaths, toggleBackground ? "background.jpg" : "background2.jpg");
+            currentBackgroundIndex = (currentBackgroundIndex + 1) % backgroundPaths.Length;
+            string backgroundPath = backgroundPaths[currentBackgroundIndex];
 
-            // Przejście do kolejnego tła
-            currentIndex = (currentIndex + 1) % backgroundPaths.Length;
-
-            // Ładowanie obrazu z zasobów
-            string backgroundPath = backgroundPaths[currentIndex];
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
             using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"GameLauncher.{backgroundPath}"))
             {
                 if (stream != null)
                 {
                     BackgroundImage = Image.FromStream(stream);
                     BackgroundImageLayout = ImageLayout.Stretch;
-                    toggleBackground = currentIndex % 1 == 0;
                 }
                 else
                 {
                     MessageBox.Show($"Obrazek tła {backgroundPath} nie został znaleziony.");
                 }
             }
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -118,24 +111,22 @@ namespace GameLauncher
                     Margin = new Padding(10)
                 };
 
-                // Dodajemy ikonę gry
                 gameButton.Image = GetGameIcon(gameSettings.GamePaths[i]);
                 gameButton.TextImageRelation = TextImageRelation.ImageBeforeText;
-
-                // Obsługa kliknięcia przycisku
                 gameButton.Click += (sender, e) => OnGameButtonClick(currentIndex);
 
                 flowLayoutPanel.Controls.Add(gameButton);
             }
 
-            // Dodajemy przycisk do dodawania nowych gier
             Button addGameButton = new Button
             {
                 Text = "Dodaj grę",
                 Size = new Size(150, 50),
                 Margin = new Padding(10)
             };
+#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             addGameButton.Click += AddMoreGames;
+#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             flowLayoutPanel.Controls.Add(addGameButton);
         }
 
@@ -159,7 +150,9 @@ namespace GameLauncher
         {
             if (gameSettings.GamePaths.Count < 24)
             {
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
                 gameSettings.GamePaths.Add(null);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
                 InitializeButtons();
             }
             else
@@ -234,10 +227,12 @@ namespace GameLauncher
         {
             try
             {
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
                 using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"GameLauncher.{iconName}"))
                 {
                     return iconStream != null ? new Icon(iconStream).ToBitmap() : null;
                 }
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
             }
             catch
             {
@@ -247,6 +242,7 @@ namespace GameLauncher
 
         private void SetAppIcon()
         {
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
             using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GameLauncher.gtasa.ico"))
             {
                 if (iconStream != null)
@@ -258,6 +254,8 @@ namespace GameLauncher
                     MessageBox.Show("Ikona aplikacji (gtasa.ico) nie została znaleziona.");
                 }
             }
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
     }
 }
+

@@ -5,25 +5,25 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
-    <PublishSingleFile>true</PublishSingleFile> <!-- Publikacja jako pojedynczy plik -->
-    <ApplicationIcon>gtasa.ico</ApplicationIcon> <!-- Określenie ikony aplikacji -->
-    <AssemblyName>gta-sa</AssemblyName> <!-- Zmieniamy nazwę pliku EXE -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <ApplicationIcon>gtasa.ico</ApplicationIcon>
+    <AssemblyName>gta-sa</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Osadzenie plików graficznych jako zasoby -->
     <EmbeddedResource Include="background.jpg" />
-    <EmbeddedResource Include="gtasa.ico" />
-    <EmbeddedResource Include="gta_sa.ico" /> <!-- Dodanie ikony gta_sa.ico -->
-    <EmbeddedResource Include="mta.ico" /> <!-- Dodanie ikony mta.ico -->
-    <EmbeddedResource Include="samp.ico" /> <!-- Dodanie ikony samp.ico -->
     <EmbeddedResource Include="background2.jpg" />
-    <EmbeddedResource Include ="background3.jpg"/>
-    <EmbeddedResource Include ="background4.jpg"/>
-    <EmbeddedResource Include ="background5.jpg"/>
-    <EmbeddedResource Include ="background6.jpg"/>
-    <EmbeddedResource Include ="background7.jpg"/>
-    <EmbeddedResource Include ="background8.jpg"/>
+    <EmbeddedResource Include="background3.jpg" />
+    <EmbeddedResource Include="background4.jpg" />
+    <EmbeddedResource Include="background5.jpg" />
+    <EmbeddedResource Include="background6.jpg" />
+    <EmbeddedResource Include="background7.jpg" />
+    <EmbeddedResource Include="background8.jpg" />
+    <EmbeddedResource Include="gtasa.ico" />
+    <EmbeddedResource Include="gta_sa.ico" />
+    <EmbeddedResource Include="mta.ico" />
+    <EmbeddedResource Include="samp.ico" />
   </ItemGroup>
 
   <ItemGroup>

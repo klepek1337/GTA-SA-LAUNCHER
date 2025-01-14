@@ -2,139 +2,175 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
-using System.Net;
-using System.Threading.Tasks;
+using System.Reflection;
 using System.Windows.Forms;
+using System.Timers;
 
 namespace GameLauncher
 {
     public partial class Form1 : Form
     {
         private GameSettings gameSettings;
+        private FlowLayoutPanel flowLayoutPanel;
+        private System.Timers.Timer backgroundChangeTimer;
+        private bool toggleBackground = true;
 
         public Form1()
         {
             InitializeComponent();
+
+            // Tworzenie FlowLayoutPanel
+            flowLayoutPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                WrapContents = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                BackColor = Color.Transparent // Ustawienie przezroczystości
+            };
+            Controls.Add(flowLayoutPanel);
 
             // Ładujemy ustawienia gier z pliku
             gameSettings = GameSettings.LoadSettings();
 
             // Inicjalizujemy przyciski gier
             InitializeButtons();
+
+            // Ustawienie tła aplikacji
+            SetBackgroundImage();
+
+            // Ustawienie ikony aplikacji na pasku zadań
+            SetAppIcon();
+
+            InitializeBackgroundChangeTimer();
         }
 
-        // Funkcja do sprawdzania, czy Python jest zainstalowany
-        private bool IsPythonInstalled()
+        private void InitializeBackgroundChangeTimer()
         {
-            try
+            backgroundChangeTimer = new System.Timers.Timer(10000); // 60 sekund
+            backgroundChangeTimer.Elapsed += (s, e) => Invoke((Action)(() =>
             {
-                Process.Start("python", "--version");
-                return true; // Python jest zainstalowany
-            }
-            catch
-            {
-                return false; // Python nie jest zainstalowany
-            }
+                SetBackgroundImage();
+                toggleBackground = !toggleBackground; // Zmiana flagi
+            }));
+            backgroundChangeTimer.AutoReset = true;
+            backgroundChangeTimer.Start();
         }
 
-        // Funkcja do instalacji Pythona
-        private void InstallPython()
-        {
-            string pythonInstallerUrl = "https://www.python.org/ftp/python/3.10.5/python-3.10.5-amd64.exe"; // Link do instalatora
-            string installerPath = Path.Combine(Path.GetTempPath(), "python_installer.exe");
-
-            try
-            {
-                progressBarPythonInstall.Style = ProgressBarStyle.Marquee;
-                progressBarPythonInstall.Visible = true;
-
-#pragma warning disable SYSLIB0014 // Type or member is obsolete
-                using (var client = new WebClient())
-                {
-                    client.DownloadFile(pythonInstallerUrl, installerPath);
-                }
-#pragma warning restore SYSLIB0014 // Type or member is obsolete
-
-                ProcessStartInfo processStartInfo = new ProcessStartInfo
-                {
-                    FileName = installerPath,
-                    Arguments = "/quiet InstallAllUsers=1 PrependPath=1",
-                    CreateNoWindow = true,
-                    UseShellExecute = false
-                };
-
-                _ = Task.Run(() =>
-                {
-#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
-                    Process process = Process.Start(processStartInfo);
-#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
-#pragma warning disable CS8602 // Dereference of a possibly null reference.
-                    process.WaitForExit();
-#pragma warning restore CS8602 // Dereference of a possibly null reference.
-
-                    Invoke(new Action(() =>
-                    {
-                        progressBarPythonInstall.Style = ProgressBarStyle.Blocks;
-                        progressBarPythonInstall.Value = 100;
-
-                        MessageBox.Show("Python został pomyślnie zainstalowany. Uruchom ponownie aplikację.");
-                        Application.Exit();
-                    }));
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Błąd podczas instalacji Pythona: {ex.Message}");
-            }
-        }
-
-        // Funkcja do ustawienia tła z pliku
         private void SetBackgroundImage()
         {
-            string backgroundPath = Path.Combine(Application.StartupPath, "background.png");
-            MessageBox.Show($"Ścieżka do tła: {backgroundPath}"); // Debugowanie ścieżki
+            // Lista dostępnych plików tła
+            string[] backgroundPaths = new string[]
+            {
+                "background.jpg",
+                "background2.jpg",
+                "background3.jpg",
+                "background4.jpg",
+                "background5.jpg",
+                "background6.jpg",
+                "background7.jpg",
+                "background8.jpg"
+            };
 
-            if (File.Exists(backgroundPath))
+            // Obliczenie aktualnego indeksu tła na podstawie flagi `toggleBackground`
+            int currentIndex = Array.IndexOf(backgroundPaths, toggleBackground ? "background.jpg" : "background2.jpg");
+
+            // Przejście do kolejnego tła
+            currentIndex = (currentIndex + 0) % backgroundPaths.Length;
+
+            // Ładowanie obrazu z zasobów
+            string backgroundPath = backgroundPaths[currentIndex];
+#pragma warning disable CS8600 // Converting null literal or possible null value to non-nullable type.
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"GameLauncher.{backgroundPath}"))
             {
-                BackgroundImage = Image.FromFile(backgroundPath);
-                BackgroundImageLayout = ImageLayout.Stretch;
+                if (stream != null)
+                {
+                    BackgroundImage = Image.FromStream(stream);
+                    BackgroundImageLayout = ImageLayout.Stretch;
+                    toggleBackground = currentIndex % 1 == 0;
+                }
+                else
+                {
+                    MessageBox.Show($"Obrazek tła {backgroundPath} nie został znaleziony.");
+                }
             }
-            else
-            {
-                MessageBox.Show("Obrazek tła nie został znaleziony.");
-            }
+#pragma warning restore CS8600 // Converting null literal or possible null value to non-nullable type.
         }
 
-        // Inicjalizacja przycisków
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            backgroundChangeTimer?.Stop();
+            backgroundChangeTimer?.Dispose();
+            gameSettings.SaveSettings();
+            base.OnFormClosing(e);
+        }
+
         private void InitializeButtons()
         {
-            Controls.Clear();
+            flowLayoutPanel.Controls.Clear();
 
             for (int i = 0; i < gameSettings.GamePaths.Count; i++)
             {
                 int currentIndex = i;
                 Button gameButton = new Button
                 {
-                    Text = gameSettings.GamePaths[i] != null ? Path.GetFileNameWithoutExtension(gameSettings.GamePaths[i]) : $"Gra {i + 1}",
-                    Location = new Point(50, 50 + (i * 60))
+                    Text = GetGameName(gameSettings.GamePaths[i]),
+                    Size = new Size(150, 50),
+                    Margin = new Padding(10)
                 };
+
+                // Dodajemy ikonę gry
+                gameButton.Image = GetGameIcon(gameSettings.GamePaths[i]);
+                gameButton.TextImageRelation = TextImageRelation.ImageBeforeText;
+
+                // Obsługa kliknięcia przycisku
                 gameButton.Click += (sender, e) => OnGameButtonClick(currentIndex);
-                Controls.Add(gameButton);
+
+                flowLayoutPanel.Controls.Add(gameButton);
             }
 
+            // Dodajemy przycisk do dodawania nowych gier
             Button addGameButton = new Button
             {
                 Text = "Dodaj grę",
-                Location = new Point(50, 50 + (gameSettings.GamePaths.Count * 60) + 20)
+                Size = new Size(150, 50),
+                Margin = new Padding(10)
             };
-#pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
             addGameButton.Click += AddMoreGames;
-#pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
-            Controls.Add(addGameButton);
+            flowLayoutPanel.Controls.Add(addGameButton);
         }
 
-        // Funkcja obsługująca kliknięcie przycisku gry
+        private string GetGameName(string? gamePath)
+        {
+            if (string.IsNullOrEmpty(gamePath))
+                return "Nieznana Gra";
+
+            string fileName = Path.GetFileNameWithoutExtension(gamePath).ToLower();
+            if (fileName.Contains("gta-sa"))
+                return "SAMP";
+            if (fileName.Contains("gta_sa"))
+                return "GTA SA";
+            if (fileName.Contains("mta"))
+                return "MTA";
+
+            return fileName;
+        }
+
+        private void AddMoreGames(object sender, EventArgs e)
+        {
+            if (gameSettings.GamePaths.Count < 24)
+            {
+                gameSettings.GamePaths.Add(null);
+                InitializeButtons();
+            }
+            else
+            {
+                MessageBox.Show("Osiągnięto maksymalną liczbę gier.");
+            }
+        }
+
         private void OnGameButtonClick(int index)
         {
             if (index < 0 || index >= gameSettings.GamePaths.Count)
@@ -159,48 +195,17 @@ namespace GameLauncher
                 {
                     gameSettings.GamePaths[index] = openFileDialog.FileName;
                     InitializeButtons();
-
-                    if (gameSettings.GamePaths[index]?.ToLower().EndsWith(".lnk") == true && !IsPythonInstalled())
-                    {
-                        InstallPython();
-                    }
                 }
             }
         }
 
-        // Funkcja do dodania nowych gier
-        private void AddMoreGames(object sender, EventArgs e)
-        {
-            if (gameSettings.GamePaths.Count < 5)
-            {
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-                gameSettings.GamePaths.Add(null);
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
-                InitializeButtons();
-            }
-            else
-            {
-                MessageBox.Show("Osiągnięto maksymalną liczbę gier.");
-            }
-        }
-
-        // Funkcja do uruchamiania gry
         private void LaunchGame(string gamePath)
         {
             if (File.Exists(gamePath))
             {
                 try
                 {
-                    if (gamePath.ToLower().EndsWith(".lnk"))
-                    {
-                        string pythonScript = Path.Combine(Path.GetTempPath(), "launch_game.py");
-                        File.WriteAllText(pythonScript, $"import os\nos.startfile('{gamePath}')");
-                        Process.Start("python", pythonScript);
-                    }
-                    else
-                    {
-                        Process.Start(gamePath);
-                    }
+                    Process.Start(gamePath);
                 }
                 catch (Exception ex)
                 {
@@ -213,15 +218,52 @@ namespace GameLauncher
             }
         }
 
-        // Zapisujemy ustawienia przed zamknięciem aplikacji
-        protected override void OnFormClosing(FormClosingEventArgs e)
+        private Image? GetGameIcon(string gamePath)
         {
-            gameSettings.SaveSettings();
-            base.OnFormClosing(e);
+            if (string.IsNullOrEmpty(gamePath)) return null;
+
+            string fileName = Path.GetFileNameWithoutExtension(gamePath).ToLower();
+            if (fileName.Contains("gta-sa"))
+                return LoadIconFromResource("samp.ico");
+            if (fileName.Contains("gta_sa"))
+                return LoadIconFromResource("gta_sa.ico");
+            if (fileName.Contains("mta"))
+                return LoadIconFromResource("mta.ico");
+
+            return null;
+        }
+
+        private Image? LoadIconFromResource(string iconName)
+        {
+            try
+            {
+                using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"GameLauncher.{iconName}"))
+                {
+                    return iconStream != null ? new Icon(iconStream).ToBitmap() : null;
+                }
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private void SetAppIcon()
+        {
+            using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GameLauncher.gtasa.ico"))
+            {
+                if (iconStream != null)
+                {
+                    Icon = new Icon(iconStream);
+                }
+                else
+                {
+                    MessageBox.Show("Ikona aplikacji (gtasa.ico) nie została znaleziona.");
+                }
+            }
         }
     }
 }
-
 
 
 ### Zawartość pliku: Form1.Designer.cs ###
@@ -261,8 +303,9 @@ namespace GameLauncher
             this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.progressBarPythonInstall);
             this.Name = "Form1";
-            this.Text = "Game Launcher";
+            this.Text = "GTA SA Launcher by klepek1337";
             this.ResumeLayout(false);
+
         }
     }
 }
@@ -276,14 +319,32 @@ namespace GameLauncher
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+    <PublishSingleFile>true</PublishSingleFile> <!-- Publikacja jako pojedynczy plik -->
+    <ApplicationIcon>gtasa.ico</ApplicationIcon> <!-- Określenie ikony aplikacji -->
+    <AssemblyName>gta-sa</AssemblyName> <!-- Zmieniamy nazwę pliku EXE -->
   </PropertyGroup>
+
   <ItemGroup>
+    <!-- Osadzenie plików graficznych jako zasoby -->
     <EmbeddedResource Include="background.jpg" />
+    <EmbeddedResource Include="gtasa.ico" />
+    <EmbeddedResource Include="gta_sa.ico" /> <!-- Dodanie ikony gta_sa.ico -->
+    <EmbeddedResource Include="mta.ico" /> <!-- Dodanie ikony mta.ico -->
+    <EmbeddedResource Include="samp.ico" /> <!-- Dodanie ikony samp.ico -->
+    <EmbeddedResource Include="background2.jpg" />
+    <EmbeddedResource Include ="background3.jpg"/>
+    <EmbeddedResource Include ="background4.jpg"/>
+    <EmbeddedResource Include ="background5.jpg"/>
+    <EmbeddedResource Include ="background6.jpg"/>
+    <EmbeddedResource Include ="background7.jpg"/>
+    <EmbeddedResource Include ="background8.jpg"/>
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>
+
 
 ### Zawartość pliku: GameLauncher.csproj.user ###
 ﻿<?xml version="1.0" encoding="utf-8"?>
