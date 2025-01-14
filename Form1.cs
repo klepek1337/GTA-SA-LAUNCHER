@@ -5,6 +5,7 @@ using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Windows.Forms;
+using System.Timers;
 
 namespace GameLauncher
 {
@@ -12,6 +13,8 @@ namespace GameLauncher
     {
         private GameSettings gameSettings;
         private FlowLayoutPanel flowLayoutPanel;
+        private System.Timers.Timer backgroundChangeTimer;
+        private bool toggleBackground = true;
 
         public Form1()
         {
@@ -39,22 +42,66 @@ namespace GameLauncher
 
             // Ustawienie ikony aplikacji na pasku zadań
             SetAppIcon();
+
+            InitializeBackgroundChangeTimer();
+        }
+
+        private void InitializeBackgroundChangeTimer()
+        {
+            backgroundChangeTimer = new System.Timers.Timer(60000); // 60 sekund
+            backgroundChangeTimer.Elapsed += (s, e) => Invoke((Action)(() =>
+            {
+                SetBackgroundImage();
+                toggleBackground = !toggleBackground; // Zmiana flagi
+            }));
+            backgroundChangeTimer.AutoReset = true;
+            backgroundChangeTimer.Start();
         }
 
         private void SetBackgroundImage()
         {
-            string backgroundPath = Path.Combine(Application.StartupPath, "background.jpg");
-            MessageBox.Show($"Ścieżka do tła: {backgroundPath}"); // Debugowanie ścieżki
+            // Lista dostępnych plików tła
+            string[] backgroundPaths = new string[]
+            {
+                "background.jpg",
+                "background2.jpg",
+                "background3.jpg",
+                "background4.jpg",
+                "background5.jpg",
+                "background6.jpg",
+                "background7.jpg",
+                "background8.jpg"
+            };
 
-            if (File.Exists(backgroundPath))
+            // Obliczenie aktualnego indeksu tła na podstawie flagi `toggleBackground`
+            int currentIndex = Array.IndexOf(backgroundPaths, toggleBackground ? "background.jpg" : "background2.jpg");
+
+            // Przejście do kolejnego tła
+            currentIndex = (currentIndex + 1) % backgroundPaths.Length;
+
+            // Ładowanie obrazu z zasobów
+            string backgroundPath = backgroundPaths[currentIndex];
+            using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"GameLauncher.{backgroundPath}"))
             {
-                BackgroundImage = Image.FromFile(backgroundPath);
-                BackgroundImageLayout = ImageLayout.Stretch;
+                if (stream != null)
+                {
+                    BackgroundImage = Image.FromStream(stream);
+                    BackgroundImageLayout = ImageLayout.Stretch;
+                    toggleBackground = currentIndex % 1 == 0;
+                }
+                else
+                {
+                    MessageBox.Show($"Obrazek tła {backgroundPath} nie został znaleziony.");
+                }
             }
-            else
-            {
-                MessageBox.Show("Obrazek tła nie został znaleziony.");
-            }
+        }
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            backgroundChangeTimer?.Stop();
+            backgroundChangeTimer?.Dispose();
+            gameSettings.SaveSettings();
+            base.OnFormClosing(e);
         }
 
         private void InitializeButtons()
@@ -105,7 +152,7 @@ namespace GameLauncher
             if (fileName.Contains("mta"))
                 return "MTA";
 
-            return Path.GetFileNameWithoutExtension(gamePath);
+            return fileName;
         }
 
         private void AddMoreGames(object sender, EventArgs e)
@@ -174,11 +221,11 @@ namespace GameLauncher
 
             string fileName = Path.GetFileNameWithoutExtension(gamePath).ToLower();
             if (fileName.Contains("gta-sa"))
-                return LoadIconFromResource("GameLauncher.samp.ico");
+                return LoadIconFromResource("samp.ico");
             if (fileName.Contains("gta_sa"))
-                return LoadIconFromResource("GameLauncher.gta_sa.ico");
+                return LoadIconFromResource("gta_sa.ico");
             if (fileName.Contains("mta"))
-                return LoadIconFromResource("GameLauncher.mta.ico");
+                return LoadIconFromResource("mta.ico");
 
             return null;
         }
@@ -187,7 +234,7 @@ namespace GameLauncher
         {
             try
             {
-                using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(iconName))
+                using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream($"GameLauncher.{iconName}"))
                 {
                     return iconStream != null ? new Icon(iconStream).ToBitmap() : null;
                 }
@@ -200,21 +247,17 @@ namespace GameLauncher
 
         private void SetAppIcon()
         {
-            string iconPath = Path.Combine(Application.StartupPath, "gtasa.ico");
-            if (File.Exists(iconPath))
+            using (Stream iconStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GameLauncher.gtasa.ico"))
             {
-                Icon = new Icon(iconPath);
+                if (iconStream != null)
+                {
+                    Icon = new Icon(iconStream);
+                }
+                else
+                {
+                    MessageBox.Show("Ikona aplikacji (gtasa.ico) nie została znaleziona.");
+                }
             }
-            else
-            {
-                MessageBox.Show("Ikona aplikacji (gtasa.ico) nie została znaleziona.");
-            }
-        }
-
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            gameSettings.SaveSettings();
-            base.OnFormClosing(e);
         }
     }
 }

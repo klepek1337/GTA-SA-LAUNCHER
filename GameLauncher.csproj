@@ -17,6 +17,13 @@
     <EmbeddedResource Include="gta_sa.ico" /> <!-- Dodanie ikony gta_sa.ico -->
     <EmbeddedResource Include="mta.ico" /> <!-- Dodanie ikony mta.ico -->
     <EmbeddedResource Include="samp.ico" /> <!-- Dodanie ikony samp.ico -->
+    <EmbeddedResource Include="background2.jpg" />
+    <EmbeddedResource Include ="background3.jpg"/>
+    <EmbeddedResource Include ="background4.jpg"/>
+    <EmbeddedResource Include ="background5.jpg"/>
+    <EmbeddedResource Include ="background6.jpg"/>
+    <EmbeddedResource Include ="background7.jpg"/>
+    <EmbeddedResource Include ="background8.jpg"/>
   </ItemGroup>
 
   <ItemGroup>
